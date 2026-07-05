@@ -1,0 +1,20 @@
+# Python virtual environments and packages
+venv/
+.venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Local Database and certificates
+data/
+test_data/
+*.db
+.mitmproxy/
+mitmproxy-ca-cert.pem
+
+# OS / IDE files
+.DS_Store
+.vscode/
+.idea/
