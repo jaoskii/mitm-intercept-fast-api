@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  interceptor:
+    build: .
+    container_name: mitmproxy-interceptor
+    ports:
+      - "8000:8000"  # FastAPI Dashboard
+      - "8080:8080"  # Mitmproxy proxy port
+    volumes:
+      - proxy-data:/app/data
+      - proxy-certs:/root/.mitmproxy
+    restart: unless-stopped
+
+volumes:
+  proxy-data:
+    driver: local
+  proxy-certs:
+    driver: local

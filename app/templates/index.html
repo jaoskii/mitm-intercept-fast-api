@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mitmproxy Intercept Dashboard</title>
+    <!-- Google Fonts Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="glass-bg-grid"></div>
+    <div class="glow-orb" id="orb-1"></div>
+    <div class="glow-orb" id="orb-2"></div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="brand">
+                <div class="brand-logo"><i class="fa-solid fa-shield-halved"></i></div>
+                <div class="brand-text">
+                    <h1>MitmProxy Interceptor</h1>
+                    <p class="status-indicator active"><span class="pulse-dot"></span> System Operational</p>
+                </div>
+            </div>
+            <div class="actions">
+                <a href="/api/cert" id="download-cert-btn" class="btn btn-secondary">
+                    <i class="fa-solid fa-download"></i> Download CA Cert
+                </a>
+                <button id="add-rule-btn" class="btn btn-primary">
+                    <i class="fa-solid fa-plus"></i> Add Intercept Rule
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <main class="workspace">
+            <!-- Left Panel: Rules Management -->
+            <section class="panel rules-panel">
+                <div class="panel-header">
+                    <h2><i class="fa-solid fa-sliders"></i> Interception Rules</h2>
+                    <span class="badge" id="rule-count">0 Active</span>
+                </div>
+                <div class="panel-body">
+                    <div id="rules-list" class="rules-list">
+                        <!-- Dynamic Rules will be rendered here -->
+                        <div class="loading-state">
+                            <i class="fa-solid fa-circle-notch fa-spin"></i> Loading rules...
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Panel: Live Logs -->
+            <section class="panel logs-panel">
+                <div class="panel-header">
+                    <div class="title-group">
+                        <h2><i class="fa-solid fa-bolt"></i> Live Traffic Feed</h2>
+                        <div class="live-badge"><span class="pulse-dot-red"></span> LIVE</div>
+                    </div>
+                    <div class="log-actions">
+                        <button id="clear-logs-btn" class="btn btn-text btn-danger">
+                            <i class="fa-solid fa-trash-can"></i> Clear Logs
+                        </button>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <div class="logs-table-container">
+                        <table class="logs-table">
+                            <thead>
+                                <tr>
+                                    <th>Method</th>
+                                    <th>Host & Path</th>
+                                    <th>Status</th>
+                                    <th>Action Taken</th>
+                                    <th>Time</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="logs-list">
+                                <!-- Live logs will be rendered here -->
+                                <tr class="empty-state">
+                                    <td colspan="6">
+                                        <div class="empty-message">
+                                            <i class="fa-solid fa-network-wired"></i>
+                                            <p>No traffic intercepted yet. Send requests through the proxy (port 8080).</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Rule Modal -->
+    <div id="rule-modal" class="modal-backdrop">
+        <div class="modal-content glass-card">
+            <div class="modal-header">
+                <h3 id="modal-title">Create Intercept Rule</h3>
+                <button class="close-modal-btn" id="close-modal-btn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="rule-form" class="modal-body">
+                <input type="hidden" id="rule-id">
+                
+                <div class="form-group">
+                    <label for="rule-name">Friendly Name</label>
+                    <input type="text" id="rule-name" required placeholder="e.g. Mock login service response">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-4">
+                        <label for="rule-method">HTTP Method</label>
+                        <select id="rule-method">
+                            <option value="ALL">ALL</option>
+                            <option value="GET">GET</option>
+                            <option value="POST">POST</option>
+                            <option value="PUT">PUT</option>
+                            <option value="DELETE">DELETE</option>
+                            <option value="PATCH">PATCH</option>
+                        </select>
+                    </div>
+                    <div class="form-group col-8">
+                        <label for="rule-url">URL Pattern / Substring Match</label>
+                        <input type="text" id="rule-url" required placeholder="e.g. api/users or example.com">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="rule-action">Interception Action</label>
+                    <select id="rule-action" required>
+                        <option value="mock_response">Mock Response (Immediate Return)</option>
+                        <option value="modify_request_headers">Modify Request Headers</option>
+                        <option value="modify_response_headers">Modify Response Headers</option>
+                        <option value="modify_response_body">Modify Response Body (Search & Replace)</option>
+                        <option value="delay">Simulate Network Delay</option>
+                    </select>
+                </div>
+
+                <!-- Conditional Fields -->
+                
+                <!-- Status Code (Mock) -->
+                <div class="form-group action-field" id="field-status-code">
+                    <label for="rule-status-code">HTTP Status Code</label>
+                    <input type="number" id="rule-status-code" placeholder="e.g. 200, 404, 503">
+                </div>
+
+                <!-- Custom Response Body (Mock or Rewrite) -->
+                <div class="form-group action-field" id="field-response-body">
+                    <label for="rule-response-body">Response Body</label>
+                    <textarea id="rule-response-body" rows="4" placeholder='{"status": "mocked", "data": {}}'></textarea>
+                </div>
+
+                <!-- Headers JSON (Header modifiers) -->
+                <div class="form-group action-field" id="field-headers-json">
+                    <label for="rule-headers-json">Headers JSON Object</label>
+                    <textarea id="rule-headers-json" rows="3" placeholder='{"X-Mocked-By": "MitmProxy", "Content-Type": "application/json"}'></textarea>
+                </div>
+
+                <!-- Body Search and Replace (Modify Body) -->
+                <div class="form-row action-field" id="field-body-rewrite">
+                    <div class="form-group col-6">
+                        <label for="rule-body-search">Search Text</label>
+                        <input type="text" id="rule-body-search" placeholder="e.g. original_string">
+                    </div>
+                    <div class="form-group col-6">
+                        <label for="rule-body-replace">Replace Text</label>
+                        <input type="text" id="rule-body-replace" placeholder="e.g. replaced_string">
+                    </div>
+                </div>
+
+                <!-- Delay Seconds (Delay) -->
+                <div class="form-group action-field" id="field-delay">
+                    <label for="rule-delay">Delay (Seconds)</label>
+                    <input type="number" step="0.1" id="rule-delay" placeholder="e.g. 1.5">
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancel-modal-btn">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Rule</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Log Details Modal -->
+    <div id="log-modal" class="modal-backdrop">
+        <div class="modal-content glass-card log-detail-modal">
+            <div class="modal-header">
+                <h3>Flow Detail Inspector</h3>
+                <button class="close-modal-btn" id="close-log-modal-btn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body log-details-container">
+                <div class="flow-header">
+                    <span id="detail-method" class="badge-method">GET</span>
+                    <span id="detail-url" class="flow-url">https://httpbin.org/get</span>
+                </div>
+                <div class="flow-meta">
+                    <span class="meta-item"><i class="fa-solid fa-calendar"></i> <span id="detail-time">-</span></span>
+                    <span class="meta-item"><i class="fa-solid fa-circle-info"></i> Intercepted: <span id="detail-intercepted">No</span></span>
+                    <span class="meta-item" id="detail-action-container"><i class="fa-solid fa-wand-magic-sparkles"></i> Action: <span id="detail-action">-</span></span>
+                </div>
+
+                <div class="tab-container">
+                    <div class="tab-headers">
+                        <button class="tab-btn active" data-tab="tab-request">Request</button>
+                        <button class="tab-btn" data-tab="tab-response">Response</button>
+                    </div>
+                    
+                    <div class="tab-content active" id="tab-request">
+                        <h4>Headers</h4>
+                        <pre class="code-block"><code id="detail-req-headers">-</code></pre>
+                        <h4>Body</h4>
+                        <pre class="code-block"><code id="detail-req-body">-</code></pre>
+                    </div>
+                    
+                    <div class="tab-content" id="tab-response">
+                        <div class="response-status-bar">
+                            Status: <span id="detail-res-status" class="res-status-val">-</span>
+                        </div>
+                        <h4>Headers</h4>
+                        <pre class="code-block"><code id="detail-res-headers">-</code></pre>
+                        <h4>Body</h4>
+                        <pre class="code-block"><code id="detail-res-body">-</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Help & Connection Alert -->
+    <div class="quick-help-bar glass-card">
+        <div class="help-section">
+            <h4><i class="fa-solid fa-circle-question"></i> How to use this proxy:</h4>
+            <ol>
+                <li>Configure the proxy server on your client/device to IP: <code>localhost</code> (or host IP) and Port: <code>8080</code>.</li>
+                <li>For HTTPS websites, download the <a href="/api/cert" class="help-link">CA Cert</a> and trust it on your device.</li>
+                <li>Run a quick curl verification: <code class="code-line">curl -x http://localhost:8080 http://httpbin.org/get</code></li>
+            </ol>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
